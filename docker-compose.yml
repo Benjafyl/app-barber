@@ -1,0 +1,60 @@
+services:
+  app:
+    build: .
+    command: npm run dev
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://barber_user:barber_password@postgres:5432/barber_db?schema=public
+      RUN_MIGRATIONS: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - uploads_data:/app/uploads
+    networks:
+      - internal
+
+  worker:
+    build: .
+    command: npm run worker
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://barber_user:barber_password@postgres:5432/barber_db?schema=public
+      RUN_MIGRATIONS: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - uploads_data:/app/uploads
+    networks:
+      - internal
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: barber_db
+      POSTGRES_USER: barber_user
+      POSTGRES_PASSWORD: barber_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U barber_user -d barber_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+  uploads_data:
+
+networks:
+  internal:
+    driver: bridge

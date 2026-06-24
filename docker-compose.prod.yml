@@ -1,0 +1,52 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      RUN_MIGRATIONS: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - internal
+      - traefik
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.barber-app.rule: "Host(`${APP_HOST:-appbarber.cl}`)"
+      traefik.http.routers.barber-app.entrypoints: websecure
+      traefik.http.routers.barber-app.tls.certresolver: letsencrypt
+      traefik.http.services.barber-app.loadbalancer.server.port: "3000"
+
+  worker:
+    build: .
+    command: npm run worker
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      RUN_MIGRATIONS: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - internal
+
+  postgres:
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-barber_db}
+      POSTGRES_USER: ${POSTGRES_USER:-barber_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.production}
+    ports: []
+
+volumes:
+  uploads_data:
+
+networks:
+  traefik:
+    external: true
