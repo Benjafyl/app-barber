@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { type Resolver, useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [serverError, setServerError] = useState<string>();
   const isRegister = mode === "register";
   const form = useForm<z.infer<typeof registerSchema>>({
-    resolver: zodResolver(registerSchema),
+    resolver: (isRegister ? zodResolver(registerSchema) : zodResolver(loginSchema)) as Resolver<z.infer<typeof registerSchema>>,
     defaultValues: { name: "", email: "", password: "" },
   });
 
@@ -41,7 +41,8 @@ export function AuthForm({ mode }: AuthFormProps) {
       return;
     }
 
-    router.push("/dashboard");
+    const role = (result.data?.user as { role?: string } | undefined)?.role;
+    router.push(role === "SUPER_ADMIN" ? "/super-admin" : role === "BARBERSHOP_ADMIN" ? "/select-barbershop" : "/dashboard");
     router.refresh();
   }
 

@@ -1,9 +1,11 @@
 import "dotenv/config";
+import { hashPassword } from "better-auth/crypto";
 import { getPrisma } from "@/lib/prisma";
 
 const prisma = getPrisma();
 const dryRun = process.env.SEED_DRY_RUN === "1";
 const seedDate = new Date("2026-06-24T00:00:00.000Z");
+const developmentPassword = process.env.DEV_SEED_PASSWORD ?? "BarberDemo2026!";
 
 type BarberSeed = {
   email: string;
@@ -48,6 +50,24 @@ const tenants: BarbershopSeed[] = [
     ],
   },
 ];
+
+async function ensureDevAccount(userId: string) {
+  const existingAccount = await prisma.account.findUnique({
+    where: { providerId_accountId: { providerId: "credential", accountId: userId } },
+    select: { id: true },
+  });
+
+  if (!existingAccount) {
+    await prisma.account.create({
+      data: {
+        userId,
+        providerId: "credential",
+        accountId: userId,
+        password: await hashPassword(developmentPassword),
+      },
+    });
+  }
+}
 
 async function report(label: string) {
   const [barbershops, users, barbers, services, memberships, rentAgreements] = await Promise.all([
@@ -129,6 +149,8 @@ async function seedTenant(tenant: BarbershopSeed) {
       },
     });
 
+    await ensureDevAccount(user.id);
+
     await prisma.barbershopMember.upsert({
       where: { userId_barbershopId: { userId: user.id, barbershopId: barbershop.id } },
       update: { role },
@@ -186,6 +208,18 @@ async function seedTenant(tenant: BarbershopSeed) {
 async function main() {
   await report("estado previo");
   if (dryRun) return;
+
+  const platformAdmin = await prisma.user.upsert({
+    where: { email: "admin@appbarber.test" },
+    update: { name: "Administrador App Barber", role: "SUPER_ADMIN" },
+    create: {
+      name: "Administrador App Barber",
+      email: "admin@appbarber.test",
+      emailVerified: true,
+      role: "SUPER_ADMIN",
+    },
+  });
+  await ensureDevAccount(platformAdmin.id);
 
   for (const tenant of tenants) {
     await seedTenant(tenant);
