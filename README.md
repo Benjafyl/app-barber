@@ -72,6 +72,26 @@ docker compose up --build
 | `SMTP_*` | Canal de correo preparado para recordatorios. |
 | `UPLOADS_DIR` | Directorio persistente de storage local. |
 
+## Datos semilla de desarrollo
+
+El seed crea dos tenants aislados en la misma base de datos: **The House Fade** y **Barbería Peters Rocher**. Incluye usuarios internos, membresías, barberos, servicios y acuerdos de subarriendo pendientes de configurar para The House Fade.
+
+No crea cuentas de autenticación ni contraseñas; los usuarios sembrados son perfiles internos para probar relaciones multi-tenant. El comando es idempotente: puede ejecutarse varias veces sin duplicar tenants, barberos, servicios, membresías ni acuerdos de arriendo.
+
+Inspecciona el estado sin modificar la base:
+
+```powershell
+$env:SEED_DRY_RUN=1
+npm run seed:dev
+```
+
+Aplica o sincroniza los datos de prueba:
+
+```powershell
+Remove-Item Env:SEED_DRY_RUN -ErrorAction Ignore
+npm run seed:dev
+```
+
 ## Producción con Traefik
 
 1. Provisiona una red externa de Traefik una sola vez:

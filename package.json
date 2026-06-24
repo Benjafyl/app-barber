@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "worker": "tsx src/workers/index.ts",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "seed:dev": "prisma generate && tsx scripts/seed-dev.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
